@@ -41,17 +41,17 @@ if not target:
 
 msf_boot()
 
-# Removed 'r' so colors render correctly in terminal
+# Fixed banner: Doubled backslashes (\\) to stop the SyntaxWarning while keeping colors
 print ('''\033[1;32m
       o__ __o                                        o                             
- <|     v\                                      <|>                            
- / \     <\                                     < >                            
- \o/     o/  \o__ __o     o__  __o       __o__   |        o__ __o    \o__ __o  
-  |__  _<|/   |     |>   /v      |>     />  \    o__/_   /v     v\    |     |> 
-  |          / \   < >  />      //      \o       |      />       <\  / \   / \ 
- <o>         \o/        \o    o/         v\      |      \         /  \o/   \o/ 
-  |           |          v\  /v __o       <\     o       o       o    |     |  
- / \         / \          <\/> __/>  _\o__</     <\__    <\__ __/>   / \   / \ 
+ <|     v\\                                      <|>                            
+ / \\     <\\                                     < >                            
+ \\o/     o/  \\o__ __o     o__  __o       __o__   |        o__ __o    \\o__ __o  
+  |__  _<|/   |     |>   /v      |>     />  \\    o__/_   /v     v\\    |     |> 
+  |          / \\   < >  />      //      \\o       |      />       <\\  / \\   / \\ 
+ <o>         \\o/        \\o    o/         v\\      |      \\         /  \\o/   \\o/ 
+  |           |          v\\  /v __o       <\\     o       o       o    |     |  
+ / \\         / \\          <\\/> __/>  _\\o__</     <\\__    <\\__ __/>   / \   / \\ 
                                                                                
                                                                                
                                                                                 
@@ -96,7 +96,7 @@ def scan(links):
 
 paths = []
 def get_paths(type_str):
-    # This logic allows 'pbk' to find paths.txt even if run from /home/
+    # This logic allows 'pbk' to find paths.txt regardless of current folder
     base_path = os.path.dirname(os.path.realpath(__file__))
     wordlist_path = os.path.join(base_path, 'paths.txt')
     
