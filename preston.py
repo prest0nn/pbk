@@ -1,9 +1,11 @@
+#!/usr/bin/env python3
 import requests 
 import threading 
 import argparse 
 import time
 import sys
 import random
+import os  # Added for path handling
 from datetime import datetime
 
 # MSF-style status messages
@@ -39,8 +41,8 @@ if not target:
 
 msf_boot()
 
-# Raw string banner to prevent SyntaxWarnings
-print (r'''\033[1;32m
+# Removed 'r' so colors render correctly in terminal
+print ('''\033[1;32m
       o__ __o                                        o                             
  <|     v\                                      <|>                            
  / \     <\                                     < >                            
@@ -94,14 +96,18 @@ def scan(links):
 
 paths = []
 def get_paths(type_str):
+    # This logic allows 'pbk' to find paths.txt even if run from /home/
+    base_path = os.path.dirname(os.path.realpath(__file__))
+    wordlist_path = os.path.join(base_path, 'paths.txt')
+    
     try:
-        with open('paths.txt','r') as wordlist:
+        with open(wordlist_path,'r') as wordlist:
             for path in wordlist:
                 path = path.strip()
                 if not type_str or type_str in path:
                     paths.append(path)
     except IOError:
-        msf_log("-", "Failed to load paths.txt.")
+        msf_log("-", f"Failed to load wordlist at {wordlist_path}")
         quit()
 
 get_paths(args.type)
