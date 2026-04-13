@@ -5,7 +5,7 @@ import argparse
 import time
 import sys
 import random
-import os  # Added for path handling
+import os
 from datetime import datetime
 
 # MSF-style status messages
@@ -27,60 +27,13 @@ def msf_boot():
         time.sleep(random.uniform(0.1, 0.2))
     print("")
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-u", help="target url", dest='target')
-parser.add_argument("--path", help="custom path prefix", dest='prefix')
-parser.add_argument("--type", help="set the type i.e. html, asp, php", dest='type')
-parser.add_argument("--fast", help="uses multithreading", dest='fast', action="store_true")
-args = parser.parse_args()
-
-target = args.target 
-if not target:
-    print('\033[1;31m[-]\033[1;m Error: -u <url> is required.')
-    quit()
-
-msf_boot()
-
-# Fixed banner: Doubled backslashes (\\) to stop the SyntaxWarning while keeping colors
-print ('''\033[1;32m
-      o__ __o                                        o                             
- <|     v\\                                      <|>                            
- / \\     <\\                                     < >                            
- \\o/     o/  \\o__ __o     o__  __o       __o__   |        o__ __o    \\o__ __o  
-  |__  _<|/   |     |>   /v      |>     />  \\    o__/_   /v     v\\    |     |> 
-  |          / \\   < >  />      //      \\o       |      />       <\\  / \\   / \\ 
- <o>         \\o/        \\o    o/         v\\      |      \\         /  \\o/   \\o/ 
-  |           |          v\\  /v __o       <\\     o       o       o    |     |  
- / \\         / \\          <\\/> __/>  _\\o__</     <\\__    <\\__ __/>   / \   / \\ 
-                                                                               
-                                                                               
-                                                                                
-       =[ preston-breacher v2.0-dev           ]
-+ -- --=[ Made with ur mum                     ]
-+ -- --=[ Preston Security Framework          ]''')
-
-print ('''\n\033[1;33m[!] LEGAL WARNING: \033[37mOi, listen. I’m not responsible for your long day. 
-    If this deads out or you’re catching errors, it’s because the 
-    target’s moving peak or your own setup is clapped. Use it or lose it. Safe.\n''')
-
-# Clean target URL
-target = target.replace('https://', '').replace('http://', '')
-if target.endswith('/'): target = target[:-1]
-target = 'http://' + target
-if args.prefix:
-    target = target + ("/" + args.prefix if not args.prefix.startswith("/") else args.prefix)
-
-msf_log("*", f"Target configured: {target}")
-
-def scan(links):
+def scan(target, links):
     for link in links:
         url = target + (link if link.startswith("/") else "/" + link)
         try:
             r = requests.get(url, timeout=5)
             if r.status_code == 200:
-                # Check for fake 404s
                 if 'Page Not Found' in r.text or ('404' in r.text and len(r.text) > 1500):
-                    # Progress update even for filtered results
                     sys.stdout.write(f"\033[K\033[1;30m[*] Analyzing: {link} (Filtered)\033[m\r")
                     sys.stdout.flush()
                 else:
@@ -88,40 +41,131 @@ def scan(links):
             elif r.status_code in [301, 302]:
                 print(f"\n\033[1;33m[!]\033[m Redirect Found: {url}")
             else:
-                # Rolling progress line
                 sys.stdout.write(f"\033[K\033[1;30m[*] Testing path: {link}\033[m\r")
                 sys.stdout.flush()
         except:
             pass
 
-paths = []
-def get_paths(type_str):
-    # This logic allows 'pbk' to find paths.txt regardless of current folder
-    base_path = os.path.dirname(os.path.realpath(__file__))
-    wordlist_path = os.path.join(base_path, 'paths.txt')
-    
-    try:
-        with open(wordlist_path,'r') as wordlist:
-            for path in wordlist:
-                path = path.strip()
-                if not type_str or type_str in path:
-                    paths.append(path)
-    except IOError:
-        msf_log("-", f"Failed to load wordlist at {wordlist_path}")
-        quit()
+def main():
+    # 1. HELP BANNER - The Block Art (Shows when user types just 'pbk')
+    help_banner = r'''
+                                   ▏                                   
+                                   ▏▍▏▍▅▁▋▏▏▏▏▋▆▅▋▏▏▏▏▌▃▅▎▏▍                      
+                               ▌▉▋▊▃▂▅███▆▂▄▃▃▇██▇▄▅▆▇████▇█▅▊▊▉▎                  
+                             ▏▏▉▅▄▇██▆▄▄▆▄▄▃▉▊▊▊▊▊▊▊▉▉▄▄▅▇███████▇▋▏▏▏             
+                           ▌▃▄▄▄▅▇▆▅▂▂▍▍▎▎▎▎▎▏▏▎▎▎▎▏▎▎▎▎▎▍▌▌▂▄█████▇▇▇▍            
+                         ▏▎▍▉██▇▆▅▁▌▏▏▏▏▏▏▏▏▏▎▏▏▏▎▎▏▎▎▎▎▏▎▎▍▍▎▍▎▊▃█████▋▍▎▏         
+                        ▏▅▄▇█▆▇▄▌▏▏▏ ▏▏ ▏▏▏▏▏▏▏▏▏▏▏▏▎▎▎▎▎▎▎▍▎▎▎▎▍▎▍▌▄█████▂         
+                        ▎▊▉▆▆▇█▆▌▏▎▏  ▏▏▏▏▏ ▏▏▏▏▏▎▎▎▎▏▎▎▎▎▎▍▍▍▍▎▍▎▍▍▍▍▎▋▆███▆▁▉▏         
+                        ▎▋▅▇█▅▅▂▎▏▏▏▏▏  ▏▏▏▏▏▏▏▎▏▏▎▏▎▎▏▍▎▎▎▎▍▍▎▍▎▎▎▎▎▎▍▎▎▎▃█████▊▏         
+                        ▎▃▄▅▅▆▇▁▎▎▎▏▎▏▏ ▏▏▏▏▏▏▏▏▎▏▏▎▎▎▎▎▎▍▎▍▎▍▍▍▍▍▍▎▍▍▍▍▎▍▍▍▂█████▃▏        
+                       ▏▋▂▆█▇▄▁▎▎▎▎▏▎▎▎▎▎▎▍▎▎▎▍▍▍▍▎▍▍▍▍▎▍▌▍▍▎▌▍▍▍▍▍▍▍▍▍▍▎▌▌▍▍▁████▅▋▏      
+                       ▏▉▅▆▃▆▂▎▏▎▎▎▏▎▎▎▍▊▂▉▎▎▍▍▎▎▎▏▎▎▎▍▏▎▎▎▍▎▍▍▍▍▋▃▊▊▌▌▎▍▍▍▎▎▍▅████▉▏      
+                       ▊▄▅▅▄▆▎▍▎▍▎▍▎▌▊▃▂▊▍▋▌▍▎▍▎▍▎▍▎▍▎▎▎▍▍▎▎▍▌▍▍▎▍▍▌▌▋▋▊▂▄▃▋▌▌▍▍▍▌▍████▆▊      
+                       ▎▉▄▃▃▂▎▎▎▍▎▎▏▎▎▎▎▎▎▎▎▎▍▍▎▎▎▂▆▆▎▎▄▅▄▍▎▎▍▍▍▍▍▍▍▍▍▌▋▌▌▍▍▍▍▍▄███▉▏      
+                        ▏▄▂▄▋▎▎▎▍▍▍▎▍▍▍▎▍▍▍▍▎▍▍▍▍▍██▃▎▍▃██▋▍▍▍▍▌▌▍▌▍▍▍▌▊▉▊▌▍▍▌▌▊██▆▏       
+                       ▍▂▆▆▅▋▎▍▎▍▍▎▋▂▌▎▎▍▍▍▎▍▍▍▍▎▍▁▃▍▍▍▍▂▉▋▎▎▍▍▍▍▍▌▍▍▍▋▂▋▌▉▋▌▋▌▊███▃▍      
+                       ▊▃▅▇▅▌▎▎▎▍▎▎▇▂▍▎▎▍▍▍▎▍▍▍▎▎▎▎▎▎▍▍▎▎▍▍▎▎▍▍▍▍▎▍▌▍▍▍▂█▌▌▍▍▍▍▊███▆▊      
+                        ▏▅▃▆▌▎▍▎▌▍▎▍▇█▃▍▍▍▍▎▍▎▍▍▍▎▎▍▍▍▍▎▍▍▍▍▎▍▌▌▌▍▌▍▌▃█▆▊▌▌▌▌▋▌▉██▇▏       
+                        ▏▋▆▃▅▉▎▎▎▍▎▍▎▍▂██▆▉▊▍▍▎▍▍▎▎▎▎▍▍▍▎▎▍▍▍▎▎▍▍▍▉▁▇██▃▌▍▌▌▌▍▌▍▁██▇▋▏     
+                       ▊▄▃▅▇▅▎▎▎▍▎▎▍▎▍▍▊▃█████▄▂▌▋▍▍▎▍▎▍▎▍▌▌▋▋▂▅█████▃▊▌▌▍▌▌▌▍▌▍████▇▊      
+                        ▍▇█▆▅▁▍▎▍▍▎▎▍▍▍▎▌▁▅██████▇▅▅▅▅▆▅▆▅▇██████▅▂▋▌▋▊▌▌▊▋▋▌▋▃████▍       
+                       ▎▂▄▃▆▆▅▊▎▎▎▎▎▎▎▍▎▍▍▌▌▉▃▇▇█████████████▇▃▉▋▍▍▍▍▍▍▍▌▌▌▌▍▁█████▃▏      
+                        ▏▉█▇▅▆▄▊▍▍▍▎▍▍▍▎▍▍▌▍▌▍▌▍▊▁▄▄▄▅▅▅▄▅▁▉▍▌▋▋▋▌▋▌▌▋▋▊▌▋▊▌▁█████▉▏       
+                        ▎▂▅▇▇██▇▉▎▎▎▍▍▍▎▍▎▍▎▍▍▍▍▎▍▍▌▍▍▌▍▍▌▍▌▍▍▋▌▌▌▌▍▌▋▋▌▋▌▍▁█████▆▂▏       
+                          ▍███▅▅█▃▍▎▍▍▍▎▌▍▍▎▍▍▍▍▎▍▍▍▍▌▌▍▍▌▌▌▌▌▌▌▊▌▌▌▌▌▌▍▍▋▆██████▎        
+                          ▏▋▊▇████▇▂▌▎▍▍▍▍▍▍▍▍▍▍▍▌▍▍▌▋▌▍▍▋▌▌▌▌▌▋▌▍▌▌▋▌▍▌▃▇████▆▉▋▏        
+                            ▏▇███████▇▉▌▍▍▍▍▎▍▍▍▍▌▌▍▌▌▍▍▍▋▍▌▍▍▌▌▌▍▍▍▋▉▆███████▄            
+                              ▋▁▁▃███████▇▁▁▍▎▍▍▍▌▌▌▍▋▌▌▍▌▌▌▋▌▌▌▍▌▁▃▆███████▂▂▁▍            
+                                ▎▃▃▃▇████████▆▃▃▂▊▊▊▊▊▋▋▊▊▊▂▃▄▆████████▆▃▃▃▏                
+                                    ▏▂▂▉▂▇████████▇███████▇▇██████▇▂▁▂▁▏                  
+                                      ▎▋▏▌▆▁▎▏▏▏▎▁██▂▍▏ ▏▎▁▇▌▏▊▎                      
+                                                  ▎▎        ▏                            
+    '''
 
-get_paths(args.type)
-msf_log("*", f"Payload buffer: {len(paths)} paths loaded.")
-msf_log("*", "Initiating path discovery...")
+    # 2. SCAN BANNER - The Preston Breacher (Shows when starting a scan)
+    scan_banner = r'''\033[1;32m
+          o__ __o                                        o                             
+     <|     v\\                                      <|>                            
+     / \\     <\\                                     < >                            
+     \\o/     o/  \\o__ __o     o__  __o       __o__   |        o__ __o    \\o__ __o  
+      |__  _<|/   |     |>   /v      |>     />  \\    o__/_   /v     v\\    |     |> 
+      |          / \\   < >  />      //      \\o       |      />       <\\  / \\   / \\ 
+     <o>         \\o/        \\o    o/         v\\      |      \\         /  \\o/   \\o/ 
+      |           |          v\\  /v __o       <\\     o       o       o    |     |  
+     / \\         / \\          <\\/> __/>  _\\o__</     <\\__    <\\__ __/>   / \\   / \\ 
 
-if args.fast:
-    mid = len(paths) // 2
-    t1 = threading.Thread(target=scan, args=(paths[:mid],))
-    t2 = threading.Thread(target=scan, args=(paths[mid:],))
-    t1.start(); t2.start()
-    t1.join(); t2.join()
-else:
-    scan(paths)
+           =[ preston-breacher v2.0-dev           ]
+           =[ Usage: pbk -u <url> [options]       ]\033[0m'''
 
-print("\n")
-msf_log("+", "Scan completed successfully. Session closed.")
+    parser = argparse.ArgumentParser(
+        description="Preston Breacher Framework - Admin Panel Finder",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        add_help=True
+    )
+    parser.add_argument("-u", help="Target URL (e.g. http://example.com)", dest='target')
+    parser.add_argument("--path", help="Custom path prefix", dest='prefix')
+    parser.add_argument("--type", help="Set type (html, asp, php)", dest='type')
+    parser.add_argument("--fast", help="Use multithreading", dest='fast', action="store_true")
+
+    # Show help banner if no arguments are provided
+    if len(sys.argv) == 1:
+        print(help_banner)
+        parser.print_help()
+        sys.exit(0)
+
+    args = parser.parse_args()
+
+    if args.target:
+        print(scan_banner)
+        msf_boot()
+
+        print ('''\n\033[1;33m[!] LEGAL WARNING: \033[37mOi, listen. I’m not responsible for your long day. 
+        If this deads out or you’re catching errors, it’s because the 
+        target’s moving peak or your own setup is clapped. Use it or lose it. Safe.\n''')
+
+        # Target Cleaning
+        target = args.target.replace('https://', '').replace('http://', '')
+        if target.endswith('/'): target = target[:-1]
+        target = 'http://' + target
+        if args.prefix:
+            target = target + ("/" + args.prefix if not args.prefix.startswith("/") else args.prefix)
+
+        msf_log("*", f"Target configured: {target}")
+
+        # Path discovery for wordlist
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        wordlist_path = os.path.join(base_path, 'paths.txt')
+
+        if not os.path.exists(wordlist_path):
+            msf_log("-", "Critical: 'paths.txt' not found inside the package folder.")
+            sys.exit(1)
+
+        paths = []
+        try:
+            with open(wordlist_path, 'r', encoding='utf-8', errors='ignore') as wordlist:
+                for path in wordlist:
+                    path = path.strip()
+                    if path and (not args.type or args.type in path):
+                        paths.append(path)
+        except Exception as e:
+            msf_log("-", f"Error reading wordlist: {e}")
+            sys.exit(1)
+
+        msf_log("*", f"Payload buffer: {len(paths)} paths loaded.")
+        msf_log("*", "Initiating path discovery...")
+
+        if args.fast:
+            mid = len(paths) // 2
+            t1 = threading.Thread(target=scan, args=(target, paths[:mid],))
+            t2 = threading.Thread(target=scan, args=(target, paths[mid:],))
+            t1.start(); t2.start()
+            t1.join(); t2.join()
+        else:
+            scan(target, paths)
+
+        print("\n")
+        msf_log("+", "Scan completed successfully. Session closed.")
+
+if __name__ == "__main__":
+    main()
