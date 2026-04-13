@@ -12,6 +12,7 @@ sudo apt install python3-pbk
 ```
 
 ### **Option B: Manual Installation (Kali Linux / Debian)**
+If add-apt-repository crashes or if you are using Kali/Debian, follow these steps:
 
 If `add-apt-repository` crashes or if you are using Kali/Debian, use these steps to manually add the PPA and its security key.
 
@@ -32,6 +33,7 @@ echo "deb [signed-by=/usr/share/keyrings/pbk-ppa.gpg] [https://ppa.launchpadcont
    ```
 
 ## **Method 3
+Ideal for developers or non-Debian systems:
 Install Directly from GitHub (Source)
 Choose this method if you want to contribute to the code or use the latest "bleeding-edge" features before they hit the PPA.
 
