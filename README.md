@@ -31,7 +31,7 @@ echo "deb [signed-by=/usr/share/keyrings/pbk-ppa.gpg] [https://ppa.launchpadcont
    sudo apt update && sudo apt install python3-pbk
    ```
 
-Method 3
+## **Method 3
 Install Directly from GitHub (Source)
 Choose this method if you want to contribute to the code or use the latest "bleeding-edge" features before they hit the PPA.
 
