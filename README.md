@@ -30,3 +30,12 @@ echo "deb [signed-by=/usr/share/keyrings/pbk-ppa.gpg] [https://ppa.launchpadcont
    ```bash
    sudo apt update && sudo apt install python3-pbk
    ```
+
+   <img width="1440" height="900" alt="Screenshot 2026-04-13 at 4 48 53 AM" src="https://github.com/user-attachments/assets/a2281052-4d69-4abc-b5ca-fd156285949a" />
+
+   
+<img width="1440" height="900" alt="Screenshot 2026-04-13 at 4 52 03 AM" src="https://github.com/user-attachments/assets/6c7af48b-02de-4a3a-9268-5feb200d478f" />
+
+
+
+<img width="1440" height="900" alt="Screenshot 2026-04-13 at 4 49 42 AM" src="https://github.com/user-attachments/assets/dfc42343-c595-4cec-937e-347d1c76dd6a" />
