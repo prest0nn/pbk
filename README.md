@@ -31,6 +31,30 @@ echo "deb [signed-by=/usr/share/keyrings/pbk-ppa.gpg] [https://ppa.launchpadcont
    sudo apt update && sudo apt install python3-pbk
    ```
 
+Method 3
+Install Directly from GitHub (Source)
+Choose this method if you want to contribute to the code or use the latest "bleeding-edge" features before they hit the PPA.
+
+1. Clone the Repository:
+
+```Bash
+git clone https://github.com/prest0nn/pbk.git
+cd pbk
+```
+2. Install via Pip:
+Since this is a modern Python project, you can install it directly in "editable" mode or as a standard package:
+
+```Bash
+# Standard install
+pip install .
+```
+
+# Or, if you are developing and want changes to apply instantly:
+```Bash
+pip install -e .
+```
+Note for Linux Users: On modern systems (like Kali/Ubuntu 24.04+), if you aren't using a virtual environment, you may need to add --break-system-packages to the command or use python3 -m venv venv first.
+
    <img width="1440" height="900" alt="Screenshot 2026-04-13 at 4 48 53 AM" src="https://github.com/user-attachments/assets/a2281052-4d69-4abc-b5ca-fd156285949a" />
 
    
